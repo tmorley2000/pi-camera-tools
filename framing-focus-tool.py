@@ -15,6 +15,11 @@ from picamera2.encoders import JpegEncoder
 from picamera2.encoders import LibavMjpegEncoder
 from picamera2.outputs import FileOutput
 
+w=800
+h=600
+w2=int(w/2)
+h2=int(h/2)
+
 PAGE = """\
 <html>
 <head>
@@ -23,14 +28,14 @@ PAGE = """\
 <body>
 <h1>Framing and Focus tool</h1>
 <table>
-<tr><td colspan="2"><img src="stream.mjpg" width="640" height="480" /></td></tr>
+<tr><td colspan="2"><img src="stream.mjpg" width="{w}" height="{h}" /></td></tr>
 
-<tr><td><img src="stream2.mjpg" width="320" height="190" /></td><td><img src="stream3.mjpg" width="320" height="190" /></td></tr>
-<tr><td colspan="2"><img src="stream4.mjpg" width="640" height="190" /></td></tr>
-<tr><td><img src="stream5.mjpg" width="320" height="190" /></td><td><img src="stream6.mjpg" width="320" height="190" /></td></tr>
+<tr><td><img src="stream2.mjpg" width="{w2}" height="{h2}" /></td><td><img src="stream3.mjpg" width="{w2}" height="{h2}" /></td></tr>
+<tr><td colspan="2"><img src="stream4.mjpg" width="{w}" height="{h2}" /></td></tr>
+<tr><td><img src="stream5.mjpg" width="{w2}" height="{h2}" /></td><td><img src="stream6.mjpg" width="{w2}" height="{h2}" /></td></tr>
 </body>
 </html>
-"""
+""".format(w=w,h=h,w2=w2,h2=h2)
 
 
 class StreamingOutput(io.BufferedIOBase):
@@ -109,17 +114,8 @@ def start_server():
 
 picam2 = Picamera2()
 r=picam2.sensor_modes[2]
-#size=(int(r['size'][0]/3),int(r['size'][1]/3))
 fullsize=picam2.sensor_resolution
-#fullsize=r['size']
-print(fullsize)
-streamsize=(1008,760)
-streamsize=(2028,1520)
-streamsize=(640,480)
-#streamsize=(fullsize[0]>>2,fullsize[1]>>2)
-
-#streamsize=(fullsize[0]>>1,fullsize[1]>>1)
-print(streamsize)
+streamsize=(w,h)
 #picam2.configure(picam2.create_video_configuration({"size": size},raw=r))
 
 #config = picam2.create_video_configuration({"size": fullsize}, lores={"size": streamsize},raw=r,controls={'FrameRate': 10,},buffer_count=3)
@@ -143,15 +139,15 @@ try:
         request = picam2.capture_request()
         if counter%4 == 0:
             array=request.make_array("main")
-            f2=np.ascontiguousarray(array[:190,:320])
+            f2=np.ascontiguousarray(array[:h2,:w2])
             output2.write(simplejpeg.encode_jpeg(f2, quality=65, colorspace="RGBX", colorsubsampling='420'))
-            f3=np.ascontiguousarray(array[:190,-320:])
+            f3=np.ascontiguousarray(array[:h2,-w2:])
             output3.write(simplejpeg.encode_jpeg(f3, quality=65, colorspace="RGBX", colorsubsampling='420'))
-            f4=np.ascontiguousarray(array[int(fullsize[1]/2-95):int(fullsize[1]/2+95),int(fullsize[1]/2-320):int(fullsize[1]/2+320)])
+            f4=np.ascontiguousarray(array[int(fullsize[1]/2-95):int(fullsize[1]/2+95),int(fullsize[1]/2-w2):int(fullsize[1]/2+w2)])
             output4.write(simplejpeg.encode_jpeg(f4, quality=65, colorspace="RGBX", colorsubsampling='420'))
-            f5=np.ascontiguousarray(array[-190:,:320])
+            f5=np.ascontiguousarray(array[-h2:,:w2])
             output5.write(simplejpeg.encode_jpeg(f5, quality=65, colorspace="RGBX", colorsubsampling='420'))
-            f6=np.ascontiguousarray(array[-190:,-320:])
+            f6=np.ascontiguousarray(array[-h2:,-w2:])
             output6.write(simplejpeg.encode_jpeg(f6, quality=65, colorspace="RGBX", colorsubsampling='420'))
             a=None
         counter+=1
