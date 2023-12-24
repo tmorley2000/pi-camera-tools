@@ -6,14 +6,27 @@ import sys
 import cv2
 
 from picamera2 import MappedArray, Picamera2
+from libcamera import controls
 from picamera2.encoders import H264Encoder
 
 fd=15.0
 
-picam2 = Picamera2(tuning="imx477_scientific-20sec.json")
+tuning = Picamera2.load_tuning_file("imx477_scientific.json")
+algo = Picamera2.find_tuning_algo(tuning, "rpi.agc")
+if "channels" in algo:
+    algo["channels"][0]["exposure_modes"]["normal"] = {"shutter": [100,int(fd*1000000)], "gain": [1.0,12.0]}
+else:
+    algo["exposure_modes"]["normal"] = {"shutter": [100,int(fd*1000000)], "gain": [1.0,12.0]}
 
-controls={"FrameDurationLimits": (int(fd*1000000), int(fd*1000000))}
-sc=picam2.create_still_configuration({'size':(2028,1520),'format':'XBGR8888'},controls=controls,buffer_count=2)
+
+#picam2 = Picamera2(tuning="imx477_scientific-20sec.json")
+picam2 = Picamera2(tuning=tuning)
+
+crtl={}
+crtl["FrameDurationLimits"]= (int(fd*1000000), int(fd*1000000))
+# Off Fast HighQuality
+crtl["NoiseReductionMode"]=controls.draft.NoiseReductionModeEnum.Off
+sc=picam2.create_still_configuration({'size':(2028,1520),'format':'XBGR8888'},controls=crtl,buffer_count=2)
 
 #sys.exit(0)
 
