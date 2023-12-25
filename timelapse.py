@@ -15,8 +15,8 @@ parser = argparse.ArgumentParser(description='Pi Timelapse', formatter_class=arg
 parser.add_argument('--interval', type=int, default=15, help='Timelapse interval (s)')
 parser.add_argument('--maxgain', type=float, default=12.0, help='Maximum gain')
 parser.add_argument('--dirname', type=str, default="imgs/", help='Directory to save images')
-parser.add_argument('--filename', type=str, default="%Y/%m/%d/%Y%m%dT%H%M%S.png", help='Filename template (parsed with strftime, directories automatically created)')
-parser.add_argument('--latest', type=str, default="latest.png", help='Name of file to symlink latest image to')
+parser.add_argument('--filename', type=str, default="%Y/%m/%d/%Y%m%dT%H%M%S.jpg", help='Filename template (parsed with strftime, directories automatically created)')
+parser.add_argument('--latest', type=str, default="latest.jpg", help='Name of file to symlink latest image to')
 parser.add_argument('--tuningfile', type=str, default="imx477_scientific.json", help='Base tuning file for camera, AGC parameters will be overridden')
 
 #parser.add_argument('--font', type=str, default='/usr/share/fonts/truetype/ttf-bitstream-vera/VeraBd.ttf', help='TTF font file for overlay text')
