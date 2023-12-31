@@ -37,9 +37,10 @@ crtl={}
 crtl["FrameDurationLimits"]= (int(args.interval*1000000), int(args.interval*1000000))
 # Off Fast HighQuality
 crtl["NoiseReductionMode"]=controls.draft.NoiseReductionModeEnum.Off
-sc=picam2.create_still_configuration({'size':(2028,1520),'format':'XBGR8888'},controls=crtl,buffer_count=2)
 
-#sys.exit(0)
+size=tuple(x>>1 for x in picam2.sensor_resolution)
+
+sc=picam2.create_still_configuration({'size':size,'format':'XBGR8888'},controls=crtl,buffer_count=2)
 
 picam2.configure(sc)
 
@@ -50,8 +51,6 @@ origin = (0, 30)
 font = cv2.FONT_HERSHEY_SIMPLEX
 scale = 0.7
 thickness = 2
-
-
 
 def apply_timestamp(request,dt):
     md=request.get_metadata()
@@ -67,20 +66,20 @@ def apply_timestamp(request,dt):
             y+=h+6
             cv2.rectangle(m.array,(0,y+1+baseline),(w+2,y-h-2),background,-1)
             cv2.putText(m.array, a, (1,y), font, scale, foreground, thickness)
-        
 
+def savejpeg(request,dirname,filename,linkname=None):
+    if '/' in filename:
+        os.makedirs(os.path.dirname(os.path.join(dirname,filename)),exist_ok=True)
+    request.save("main",os.path.join(dirname,filename))
+    if linkname is not None:
+        os.symlink(filename,os.path.join(dirname,linkname+".new"))
+        os.rename(os.path.join(dirname,linkname+".new"),os.path.join(dirname,linkname))
 
-x=0
 picam2.start()
 while True:
-    r=picam2.capture_request()
+    request=picam2.capture_request()
     dt=datetime.datetime.utcnow()
-    apply_timestamp(r,dt)
+    apply_timestamp(request,dt)
     filename=dt.strftime(args.filename)
-    if '/' in filename:
-        os.makedirs(os.path.dirname(os.path.join(args.dirname,filename)),exist_ok=True)
-    r.save("main",os.path.join(args.dirname,filename))
-    os.symlink(filename,os.path.join(args.dirname,args.latest+".new"))
-    os.rename(os.path.join(args.dirname,args.latest+".new"),os.path.join(args.dirname,args.latest))
-
-    r.release()
+    savejpeg(request,args.dirname,filename,args.latest)
+    request.release()
