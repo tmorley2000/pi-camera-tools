@@ -4,6 +4,11 @@ import datetime
 import sys
 import os
 import argparse
+import simplejpeg
+import piexif
+import piexif.helper
+import io
+import json
 
 import cv2
 
@@ -67,10 +72,36 @@ def apply_timestamp(request,dt):
             cv2.rectangle(m.array,(0,y+1+baseline),(w+2,y-h-2),background,-1)
             cv2.putText(m.array, a, (1,y), font, scale, foreground, thickness)
 
-def savejpeg(request,dirname,filename,linkname=None):
+JPEG_FORMAT_TABLE = {"XBGR8888": "RGBX",
+                "XRGB8888": "BGRX",
+                "BGR888": "RGB",
+                "RGB888": "BGR"}
+
+def savejpeg(request,name,dt,dirname,filename,linkname=None):
     if '/' in filename:
         os.makedirs(os.path.dirname(os.path.join(dirname,filename)),exist_ok=True)
-    request.save("main",os.path.join(dirname,filename))
+    #request.save(name,os.path.join(dirname,filename))
+
+    jpeg_bytes=simplejpeg.encode_jpeg(request.make_array(name), quality=90, colorspace=JPEG_FORMAT_TABLE[request.config[name]["format"]], colorsubsampling="420")
+
+    metadata=request.get_metadata()
+    if "AnalogueGain" in metadata and "DigitalGain" in metadata:
+        zero_ifd = {piexif.ImageIFD.Make: "Raspberry Pi",
+                    piexif.ImageIFD.Model: picam2.camera.id,
+                    piexif.ImageIFD.Software: "Picamera2",
+                    piexif.ImageIFD.DateTime: dt.strftime("%Y:%m:%d %H:%M:%S")}
+        total_gain = metadata["AnalogueGain"] * metadata["DigitalGain"]
+        exif_ifd = {piexif.ExifIFD.DateTimeOriginal: dt.strftime("%Y:%m:%d %H:%M:%S"),
+                    piexif.ExifIFD.ExposureTime: (metadata["ExposureTime"], 1000000),
+                    piexif.ExifIFD.ISOSpeedRatings: int(total_gain * 100),
+                    piexif.ExifIFD.UserComment: piexif.helper.UserComment.dump(json.dumps(metadata,sort_keys=True))}
+        exif_bytes = piexif.dump({"0th": zero_ifd, "Exif": exif_ifd})
+        new_bytes=io.BytesIO()
+        piexif.insert(exif_bytes,jpeg_bytes,new_bytes)
+
+    with open(os.path.join(dirname,filename),"wb") as file:
+        file.write(new_bytes.getbuffer())
+
     if linkname is not None:
         os.symlink(filename,os.path.join(dirname,linkname+".new"))
         os.rename(os.path.join(dirname,linkname+".new"),os.path.join(dirname,linkname))
@@ -81,5 +112,5 @@ while True:
     dt=datetime.datetime.utcnow()
     apply_timestamp(request,dt)
     filename=dt.strftime(args.filename)
-    savejpeg(request,args.dirname,filename,args.latest)
+    savejpeg(request,"main",dt,args.dirname,filename,args.latest)
     request.release()
