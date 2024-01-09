@@ -22,6 +22,7 @@ parser.add_argument('--maxgain', type=float, default=12.0, help='Maximum gain')
 parser.add_argument('--dirname', type=str, default="imgs/", help='Directory to save images')
 parser.add_argument('--filename', type=str, default="%Y/%m/%d/%Y%m%dT%H%M%S.jpg", help='Filename template (parsed with strftime, directories automatically created)')
 parser.add_argument('--latest', type=str, default="latest.jpg", help='Name of file to symlink latest image to')
+parser.add_argument('--metadata', type=str, default="%Y/%m/%d/metadata.json", help='Separate dump of image metadata')
 parser.add_argument('--tuningfile', type=str, default="imx477_scientific.json", help='Base tuning file for camera, AGC parameters will be overridden')
 
 #parser.add_argument('--font', type=str, default='/usr/share/fonts/truetype/ttf-bitstream-vera/VeraBd.ttf', help='TTF font file for overlay text')
@@ -77,7 +78,7 @@ JPEG_FORMAT_TABLE = {"XBGR8888": "RGBX",
                 "BGR888": "RGB",
                 "RGB888": "BGR"}
 
-def savejpeg(request,name,dt,dirname,filename,linkname=None):
+def savejpeg(request,name,dt,dirname,filename,linkname=None,mdfilename=None):
     if '/' in filename:
         os.makedirs(os.path.dirname(os.path.join(dirname,filename)),exist_ok=True)
     #request.save(name,os.path.join(dirname,filename))
@@ -102,15 +103,32 @@ def savejpeg(request,name,dt,dirname,filename,linkname=None):
     with open(os.path.join(dirname,filename),"wb") as file:
         file.write(new_bytes.getbuffer())
 
+    if mdfilename is not None:
+        with open(os.path.join(dirname,mdfilename),"a+") as mdfile:
+            mdfile.seek(0)
+            mdstr=mdfile.read()
+            try:
+                mdjson=json.loads(mdstr)
+            except json.decoder.JSONDecodeError:
+                print("Invalid or empty metadata json file, resetting")
+                mdjson={}
+            mdjson[os.path.basename(filename)]=metadata
+            mdfile.seek(0)
+            mdfile.truncate()
+            mdfile.write(json.dumps(mdjson,sort_keys=True))
+
     if linkname is not None:
         os.symlink(filename,os.path.join(dirname,linkname+".new"))
         os.rename(os.path.join(dirname,linkname+".new"),os.path.join(dirname,linkname))
 
 picam2.start()
+mdfilename=None
 while True:
     request=picam2.capture_request()
     dt=datetime.datetime.utcnow()
     apply_timestamp(request,dt)
     filename=dt.strftime(args.filename)
-    savejpeg(request,"main",dt,args.dirname,filename,args.latest)
+    if args.metadata is not None:
+        mdfilename=dt.strftime(args.metadata)
+    savejpeg(request,"main",dt,args.dirname,filename,args.latest,mdfilename)
     request.release()
