@@ -90,8 +90,12 @@ def genfilename():
     return dt.strftime("imgs/%Y%m%dT%H%M%S.h264")
 
 picam2 = Picamera2()
-fullsize=picam2.sensor_resolution
-config = picam2.create_video_configuration({"size": (1920, 1080)}, lores={"size": (int(1920/4), int(1080/4))},sensor={'output_size':fullsize})
+
+# Let camera decide best mode, fullres mode on a picamera 3 limnited to 14.53 FPS!
+#fullsize=picam2.sensor_resolution
+#config = picam2.create_video_configuration({"size": (1920, 1080)}, lores={"size": (int(1920/4), int(1080/4))},sensor={'output_size':fullsize})
+
+config = picam2.create_video_configuration({"size": (1920, 1080)}, lores={"size": (int(1920/4), int(1080/4))})
 picam2.configure(config)
 
 h264_encoder = H264Encoder()
