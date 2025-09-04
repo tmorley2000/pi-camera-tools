@@ -143,7 +143,7 @@ try:
             output2.write(simplejpeg.encode_jpeg(f2, quality=65, colorspace="RGBX", colorsubsampling='420'))
             f3=np.ascontiguousarray(array[:h2,-w2:])
             output3.write(simplejpeg.encode_jpeg(f3, quality=65, colorspace="RGBX", colorsubsampling='420'))
-            f4=np.ascontiguousarray(array[int(fullsize[1]/2-95):int(fullsize[1]/2+95),int(fullsize[1]/2-w2):int(fullsize[1]/2+w2)])
+            f4=np.ascontiguousarray(array[int(fullsize[1]/2-95):int(fullsize[1]/2+95),int(fullsize[0]/2-w2):int(fullsize[0]/2+w2)])
             output4.write(simplejpeg.encode_jpeg(f4, quality=65, colorspace="RGBX", colorsubsampling='420'))
             f5=np.ascontiguousarray(array[-h2:,:w2])
             output5.write(simplejpeg.encode_jpeg(f5, quality=65, colorspace="RGBX", colorsubsampling='420'))
